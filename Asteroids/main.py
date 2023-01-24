@@ -9,7 +9,10 @@ class Ship(pygame.sprite.Sprite):
         self.image = pygame.image.load("./graphics/ship.png").convert_alpha()
         #3. we need a rect
         self.rect = self.image.get_rect(center = (WINDOW_WIDTH /2, WINDOW_HEIGHT /2))
-    
+        #4. Add a mask
+        self.mask = pygame.mask.from_surface(self.image)    
+
+
         #timer
         self.can_shoot = True
         self.shoot_time = None
@@ -17,7 +20,7 @@ class Ship(pygame.sprite.Sprite):
     def laser_timer(self):
         if not self.can_shoot:
             current_time = pygame.time.get_ticks()
-            if current_time - self.shoot_time > 200:
+            if current_time - self.shoot_time > 100:
                 self.can_shoot = True
     
     def input_position(self):
@@ -32,40 +35,60 @@ class Ship(pygame.sprite.Sprite):
 
             Laser(self.rect.midtop, laser_group)
 
+    def meteor_collision(self):
+        if pygame.sprite.spritecollide(self, meteor_group, False, pygame.sprite.collide_mask):
+            pygame.quit()
+            sys.exit()
+
     def update(self):
         self.input_position()
         self.laser_shoot()
         self.laser_timer()
+        self.meteor_collision()
 
 class Laser(pygame.sprite.Sprite):
     def __init__(self, pos, groups):
         super().__init__(groups)
         self.image = pygame.image.load('./graphics/laser.png').convert_alpha()
         self.rect = self.image.get_rect(midbottom = pos)
-
+        self.mask = pygame.mask.from_surface(self.image)
         # float based position
         self.pos = pygame.math.Vector2(self.rect.topleft)
         self.direction = pygame.math.Vector2(0, -1)
         self.speed = 600
 
+    def meteor_collision(self):
+         if pygame.sprite.spritecollide(self, meteor_group, True, pygame.sprite.collide_mask):
+            self.kill()
+
     def update(self):
         self.pos += self.direction * self.speed * dt
         self.rect.topleft = (round(self.pos.x), round(self.pos.y))
+
+        if self.rect.bottom < 0:
+            self.kill()
+
+        self.meteor_collision()
 
 class Meteor(pygame.sprite.Sprite):
     def __init__(self, pos, groups):
         super().__init__(groups)
         self.image = pygame.image.load('./graphics/meteor.png').convert_alpha()
         self.rect = self.image.get_rect(center = pos)
+        self.mask = pygame.mask.from_surface(self.image)
 
         # float based positioning
         self.pos = pygame.math.Vector2(self.rect.topleft)
         self.direction = pygame.math.Vector2(uniform(-0.5, 0.5), 1)
         self.speed = randint(400, 600)
+            
 
     def update(self):
         self.pos += self.direction * self.speed * dt
         self.rect.topleft = (round(self.pos.x), round(self.pos.y))
+
+        if self.rect.top > WINDOW_HEIGHT:
+            self.kill()
 
 class Score():
     def __init__(self):
